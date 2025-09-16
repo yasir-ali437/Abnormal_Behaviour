@@ -70,8 +70,10 @@ def main():
     app = FaceAnalysis(name='buffalo_l')  # RetinaFace + ArcFace
     app.prepare(ctx_id=0)  # GPU: 0, CPU: -1
     # Open a video source (0 for webcam) or set path to video file / image
-    cap = cv2.VideoCapture("/home/adlytic/Yasir Adlytic/Abnormal_Behaviour/Dataset/Abnormal Behavior/Safety Hazard/Covering his face with the hand/1 covering his face with the hand.mp4")  # change to path e.g. "video.mp4" or image
+    cap = cv2.VideoCapture("/home/adlytic/Yasir Adlytic/Abnormal_Behaviour/Dataset/Abnormal Behavior/Safety Hazard/Covering his face with the hand/3 covering his face with the hand.mp4")  # change to path e.g. "video.mp4" or image
     prevboxA = None
+    # create an empty list
+    values = []
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -125,6 +127,7 @@ def main():
 
         if boxA==None and boxB!=None and prevboxA!=None:
             iou = intersection_over_union(prevboxA, boxB)
+            values.append(iou)
             cv2.putText(annotated_frame, f"IOU: {iou:0.4f}", (x_min, y_min +10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
         cv2.imshow("Person Detection YOLO11", annotated_frame)
         # Exit on 'q'
@@ -133,7 +136,8 @@ def main():
 
     cap.release()
     cv2.destroyAllWindows()
-
+    
+    print("Max value:", max(values))
 
 if __name__ == "__main__":
     main()

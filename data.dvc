@@ -1,0 +1,5 @@
+outs:
+- md5: 64d18e1734bc444bdd873200b3ce9c0e.dir
+  size: 1707096230
+  nfiles: 8002
+  path: plastic_bottle_img_dataset

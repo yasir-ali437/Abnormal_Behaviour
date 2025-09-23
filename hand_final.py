@@ -2,6 +2,7 @@ import cv2
 from ultralytics import YOLO
 from insightface.app import FaceAnalysis
 import mediapipe as mp
+import os
 
 mp_hands = mp.solutions.hands
 mp_draw = mp.solutions.drawing_utils
@@ -73,15 +74,23 @@ def detect_persons(model, frame, conf_threshold=0.5):
     return annotated, results
 
 def main():
+    main_output_dir = "./Safety Hazard"
+    if not os.path.isdir(main_output_dir):
+        os.makedirs(main_output_dir)
+    
     # Load YOLO11 model (you can pick another variant: tiny, small, etc.)
     model = YOLO("yolo11s.pt")  # use the nano version, change if needed
     app = FaceAnalysis(name='buffalo_l')  # RetinaFace + ArcFace
     app.prepare(ctx_id=0)  # GPU: 0, CPU: -1
     # Open a video source (0 for webcam) or set path to video file / image
-    cap = cv2.VideoCapture("/home/adlytic/Yasir Adlytic/Abnormal_Behaviour/Dataset/Abnormal Behavior/Safety Hazard/Covering his face with the hand/3 covering his face with the hand.mp4")  # change to path e.g. "video.mp4" or image
+    video_path = f"/data1/yasir/Data/Abnormal Behaviour3/Covering his face with the hand/Covering his face with the hand 11.mp4"
+    cap = cv2.VideoCapture(video_path)  # change to path e.g. "video.mp4" or image
     prevboxA = None
     # create an empty list
     values = []
+    frame_list = []
+    frame_count = 0
+    hand_on_face_threshold = 5  # Adjust this threshold based on your needs
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -93,8 +102,9 @@ def main():
         if image_rgb is None:
             continue
         
-        annotated_frame, detections = detect_persons(model,frame, conf_threshold=0.5)
+        # annotated_frame, detections = detect_persons(model,frame, conf_threshold=0.5)
 
+        annotated_frame = frame.copy()
         boxA = None
         boxB = None
 
@@ -125,22 +135,50 @@ def main():
 
                 if x_min < width // 2:  # only consider hands in left half
                     # Draw bounding box
+                    prev_x_min = x_min
+                    prev_y_min = y_min
                     cv2.rectangle(annotated_frame, (x_min, y_min), (x_max, y_max), (0,255,0), 2)
                     cv2.putText(annotated_frame, f"Hand", (x_min, y_min -10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
                     boxB = (x_min, y_min, x_max, y_max)
 
-        if boxA==None and boxB!=None and prevboxA!=None:
+        if boxB!=None and prevboxA!=None: #boxA==None and
             iou = intersection_over_union(prevboxA, boxB)
-            values.append(iou)
-            cv2.putText(annotated_frame, f"IOU: {iou:0.4f}", (x_min, y_min +10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-        cv2.imshow("Person Detection YOLO11", annotated_frame)
+            if iou > 0.15:
+                values.append(iou)
+            if iou > 0:
+                cv2.putText(annotated_frame, f"Alert: {iou:0.4f}", (prev_x_min, prev_y_min +10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+        
+        
+        
+        
+        cv2.imwrite(f"./images/frame_{frame_count}.png", annotated_frame)
+        frame_count+=1
+        
+        if frame_count % 15 == 0:
+            frame_list.append(annotated_frame.copy())
+            
+        
         # Exit on 'q'
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        # if cv2.waitKey(1) & 0xFF == ord('q'):
+        #     break
 
     cap.release()
-    cv2.destroyAllWindows()
+    # cv2.destroyAllWindows()
+    if len(values) > hand_on_face_threshold:
+        output_folder_path = os.path.join(main_output_dir, "Hand on Face",video_path.split('/')[-1].split('.')[0])
+        if not os.path.isdir(output_folder_path):
+            os.makedirs(output_folder_path)
+        for i, f in enumerate(frame_list):
+            filename = os.path.join(output_folder_path, f"frame_{i}.jpg")
+            cv2.imwrite(filename, f)
     
+    else:
+        output_folder_path = os.path.join("./False Positive",video_path.split('/')[-1].split('.')[0])
+        if not os.path.isdir(output_folder_path):
+            os.makedirs(output_folder_path)
+        for i, f in enumerate(frame_list):
+            filename = os.path.join(output_folder_path, f"frame_{i}.jpg")
+            cv2.imwrite(filename, f)
     print("Max value:", len(values))
 
 if __name__ == "__main__":

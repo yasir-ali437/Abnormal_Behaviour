@@ -70,7 +70,7 @@ def main(video_number):
     
     # Load YOLO11 model (you can pick another variant: tiny, small, etc.)
     # Open a video source (0 for webcam) or set path to video file / image
-    video_path = f"/data1/yasir/Data/Abnormal Behavior1/Abnormal Behavior/Safety Hazard/Face out of frame/{video_number} face out of frame.mp4"
+    video_path = f"/data1/yasir/Data/Abnormal Behaviour3/Face out of frame/Face out of frame {video_number}.mp4"
     cap = cv2.VideoCapture(video_path)  # change to path e.g. "video.mp4" or image
 
     # create an empty list
@@ -95,18 +95,18 @@ def main(video_number):
             if image_rgb is None:
                 continue
             
-            annotated_frame, detections = detect_persons(model,frame, conf_threshold=0.5)
+            # annotated_frame, detections = detect_persons(model,frame, conf_threshold=0.5)
 
             faces = app.get(image_rgb)
             if len(faces) != 0:
                 for face in faces:
-                    if float(face.det_score)>0.55: 
+                    if float(face.det_score)>0.40: 
                         # Draw result
                         box = face.bbox.astype(int)
                         if box[0]<frame.shape[1]//2: # only consider faces in left half
                             no_face_flag = False
-                            cv2.rectangle(annotated_frame, (box[0], box[1]), (box[2], box[3]), (0, 255, 0), 2)
-                            cv2.putText(annotated_frame, f"Face {face.det_score:0.3f}", (box[0], box[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+                            cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), (0, 255, 0), 2)
+                            cv2.putText(frame, f"Face {face.det_score:0.3f}", (box[0], box[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
                         
                             if prev_box is not None:
                                 if prev_box[2] > box[2]:
@@ -121,7 +121,7 @@ def main(video_number):
                 if face_moving_left_count>=1:
                     face_moving_left_flag = True
             # cv2.imwrite(f"./{output_folder}/frame_{frame_count}.png", annotated_frame) #for my testing or debugging          
-            frame_list.append(annotated_frame.copy())
+            frame_list.append(frame.copy())
             frame_count+=1
         
         else:
@@ -147,7 +147,7 @@ def main(video_number):
             
 
 if __name__ == "__main__":
-    for video_number in range(1, 4):
+    for video_number in range(1, 22):
         main(video_number)
     
     

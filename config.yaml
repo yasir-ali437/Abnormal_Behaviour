@@ -1,0 +1,12 @@
+# config.yaml
+
+hand_on_face:
+  min_detection_confidence: 0.3
+  min_tracking_confidence: 0.3
+  iou_threshold: 0.15
+  hand_on_face_trigger_count: 3   # number of frames with hand-on-face before alert
+
+face_out_of_frame:
+  face_detection_conf_threshold: 0.5
+
+

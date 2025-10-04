@@ -83,7 +83,7 @@ def main(video_number):
     app = FaceAnalysis(name='buffalo_l')  # RetinaFace + ArcFace
     app.prepare(ctx_id=0)  # GPU: 0, CPU: -1
     # Open a video source (0 for webcam) or set path to video file / image
-    video_path = f"/data1/yasir/Data/Abnormal Behaviour3/Covering his face with the hand/Covering his face with the hand {video_number}.mp4"
+    video_path = f"/data1/yasir/Data/Abnormal Behaviour3/Eat & Drink/Eat & drink {video_number}.mp4"
     cap = cv2.VideoCapture(video_path)  # change to path e.g. "video.mp4" or image
     prevboxA = None
     # create an empty list
@@ -219,7 +219,7 @@ def main(video_number):
     print("Max value:", len(values))
 
 if __name__ == "__main__":
-    for video_number in range(1, 15):
+    for video_number in range(1, 7):
         main(video_number)
     
     

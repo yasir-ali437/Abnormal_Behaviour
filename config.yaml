@@ -7,6 +7,8 @@ hand_on_face:
   hand_on_face_trigger_count: 3   # number of frames with hand-on-face before alert
 
 face_out_of_frame:
-  face_detection_conf_threshold: 0.5
+  face_not_detected_threshold: 2
+  face_moving_left_theshold: 1
+  face_detection_confidence: 0.4
 
 

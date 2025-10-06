@@ -3,6 +3,10 @@ from ultralytics import YOLO
 from insightface.app import FaceAnalysis
 import os
 
+face_not_detected_threshold = CONFIG["face_out_of_frame"]["face_not_detected_threshold"]  # Number of frames with no face detected to trigger alert
+face_moving_left_theshold = CONFIG["face_out_of_frame"]["face_moving_left_theshold"]  # Number of frames with face moving left to trigger alert
+face_detection_confidence = CONFIG["face_out_of_frame"]["face_detection_confidence"]  # Minimum confidence for face detection
+
 def intersection_over_union(boxA, boxB):
     # box format: (x1, y1, x2, y2)
     xA = max(boxA[0], boxB[0])
@@ -61,10 +65,6 @@ def detect_persons(model, frame, conf_threshold=0.5):
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
     
     return annotated, results
-
-model = YOLO("yolo11s.pt")  # use the nano version, change if needed
-app = FaceAnalysis(name='buffalo_l')  # RetinaFace + ArcFace
-app.prepare(ctx_id=0)  # GPU: 0, CPU: -1
     
 def main(video_number):
     
@@ -74,7 +74,6 @@ def main(video_number):
     cap = cv2.VideoCapture(video_path)  # change to path e.g. "video.mp4" or image
 
     # create an empty list
-    values = []
     frame_list = []
     frame_count = 1
     face_not_detected_count= 0
@@ -100,7 +99,7 @@ def main(video_number):
             faces = app.get(image_rgb)
             if len(faces) != 0:
                 for face in faces:
-                    if float(face.det_score)>0.40: 
+                    if float(face.det_score) > face_detection_confidence: 
                         # Draw result
                         box = face.bbox.astype(int)
                         if box[0]<frame.shape[1]//2: # only consider faces in left half
@@ -118,7 +117,7 @@ def main(video_number):
             if no_face_flag:
                 print("No face detected", face_moving_left_count)
                 face_not_detected_count+=1
-                if face_moving_left_count>=1:
+                if face_moving_left_count >= face_moving_left_theshold:
                     face_moving_left_flag = True
             # cv2.imwrite(f"./{output_folder}/frame_{frame_count}.png", annotated_frame) #for my testing or debugging          
             frame_list.append(frame.copy())
@@ -147,6 +146,10 @@ def main(video_number):
             
 
 if __name__ == "__main__":
+    model = YOLO("yolo11s.pt")  # use the nano version, change if needed
+    app = FaceAnalysis(name='buffalo_l')  # RetinaFace + ArcFace
+    app.prepare(ctx_id=0)  # GPU: 0, CPU: -1
+    
     for video_number in range(1, 22):
         main(video_number)
     

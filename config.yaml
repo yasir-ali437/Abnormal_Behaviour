@@ -11,4 +11,5 @@ face_out_of_frame:
   face_moving_left_theshold: 1
   face_detection_confidence: 0.4
 
-
+camera_misalignment:
+  person_conf_threshold: 0.5

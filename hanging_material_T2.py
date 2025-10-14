@@ -5,11 +5,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # ---------------- CONFIG ----------------
-VIDEO_PATH = "/data1/yasir/Data/Abnormal Behavior1/Abnormal Behavior/Safety Hazard/Hanging Material/5 hanging material.mp4"     # update if needed
+
 OUTPUT_DIR = "./hanging_outputs"
 
-UPPER_FRACTION = 0.90    # analyze top 90% of frame
-PROCESS_EVERY = 2        # skip frames for speed
+UPPER_FRACTION = 0.93    # analyze top 90% of frame
+PROCESS_EVERY =    2        # skip frames for speed
 
 # Detection filters
 MIN_ASPECT_RATIO = 1.2        # tall shape filter
@@ -26,8 +26,11 @@ MIN_FLOW_FLIPS = 8
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-def main():
-    cap = cv2.VideoCapture(VIDEO_PATH)
+def main(video_number):
+    
+    # video_path = f"/data1/yasir/Data/Abnormal Behavior1/Abnormal Behavior/Safety Hazard/Hanging Material/{video_number} hanging material.mp4"     # update if needed
+    video_path = f"/data1/yasir/Data/Abnormal Behavior2/Abnormal Behavior/Safety Hazard/Eat & Drink/Eat & drink {video_number}.mp4"
+    cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise RuntimeError("Could not open video")
 
@@ -40,7 +43,7 @@ def main():
 
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     out_video = os.path.join(OUTPUT_DIR, "hanging_annotated.mp4")
-    vw = cv2.VideoWriter(out_video, fourcc, FPS, (W, H))
+    # vw = cv2.VideoWriter(out_video, fourcc, FPS, (W, H))
 
     bg = cv2.createBackgroundSubtractorMOG2(history=600, varThreshold=25, detectShadows=True)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
@@ -49,9 +52,9 @@ def main():
     cx_hist, frame_idx, mean_u_hist = [], [], []
     box_hist = []
 
-    min_area = max(200, int(MIN_AREA_RATIO * W * H))
+    min_area = max(200, 0.001*int(MIN_AREA_RATIO * W * H))
     frame_count = 0
-
+    frame_list = []
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -59,7 +62,7 @@ def main():
         frame_count += 1
 
         if frame_count % PROCESS_EVERY != 0:
-            vw.write(frame)
+            # vw.write(frame)
             continue
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -137,10 +140,11 @@ def main():
                             (int(chosen_cx + 15 * np.sign(chosen_u_mean)), chosen_cy),
                             (0, 255, 255), 2, tipLength=0.4)
 
-        vw.write(vis)
-
+        # vw.write(vis)
+        frame_list.append(vis)
+        
     cap.release()
-    vw.release()
+    # vw.release()
 
     # ======= Oscillation Decision =======
     cx = np.array(cx_hist, dtype=float)
@@ -164,7 +168,19 @@ def main():
     flow_changes = np.sum(mu_sign[1:] * mu_sign[:-1] < 0)
 
     oscillatory = (amp >= amp_thresh) and (dir_changes >= MIN_DIR_CHANGES or flow_changes >= MIN_FLOW_FLIPS)
+    print(f"Oscillation verdict: {'YES' if oscillatory else 'NO'}\n")
+    
+    if oscillatory:
+        out_root = "/data1/yasir/Data/Safety Hazard/Hanging Material"
+    else:
+        out_root = "/data1/yasir/Data/False Positive/"
 
+    output_folder_path = os.path.join(out_root, os.path.splitext(os.path.basename(video_path))[0])
+    os.makedirs(output_folder_path, exist_ok=True)
+
+    for i, f in enumerate(frame_list):
+        filename = os.path.join(output_folder_path, f"frame_{i}.jpg")
+        cv2.imwrite(filename, f)
     # # ======= Save outputs =======
     # disp_plot = os.path.join(OUTPUT_DIR, "hanging_displacement.png")
     # plt.figure(figsize=(10, 4))
@@ -193,4 +209,5 @@ def main():
     # print(f" - Oscillatory: {'YES' if oscillatory else 'NO'}")
 
 if __name__ == "__main__":
-    main()
+    for video_number in range(1, 7):  # Assuming there are 5 videos named "1 hanging material.mp4" to "5 hanging material.mp4"
+        main(video_number)

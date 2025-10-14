@@ -92,7 +92,6 @@ def main(video_number):
     values = []
     frame_list = []
     frame_count = 1
-    hand_on_face_threshold = 3  # Adjust this threshold based on your needs
     while True:
         ret, frame = cap.read()
         if not ret:

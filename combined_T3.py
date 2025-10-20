@@ -32,6 +32,7 @@ face_moving_left_theshold = CONFIG["face_out_of_frame"]["face_moving_left_thesho
 person_detection_conf = CONFIG["camera_misalignment"]["person_conf_threshold"]
 bottle_on_face_threshold = 3
 bottle_conf_threshold = 0.5
+object_conf_threshold = 0.5
 
 def intersection_over_union(boxA, boxB):
     """Compute IoU between two bounding boxes (x1,y1,x2,y2)."""
@@ -119,7 +120,7 @@ def detect_hanging_object(model, frame):
     """
     Runs YOLO11 detection on the frame, returns annotated frame and detections for class "bottle".
     """
-    results = model.predict(frame, conf=bottle_conf_threshold, classes=[0])  # run detection
+    results = model.predict(frame, conf=object_conf_threshold, classes=[0])  # run detection
     annotated = frame.copy()
 
     # Get image dimensions
@@ -151,10 +152,9 @@ def detect_hanging_object(model, frame):
 def main(video_path, alert_folder):
 
     cap = cv2.VideoCapture(video_path)
-    frame_list, original_frame_list, hanging_frame_list = [], [], []
+    frame_list, original_frame_list = [], []
     camera_misalignment_flag = True
     frame_count = 0
-    hanging_material_count = 0
     while True:
         ret, frame = cap.read()
         
@@ -164,11 +164,6 @@ def main(video_path, alert_folder):
         if frame_count % 15 == 0:   
             original_frame_list.append(frame.copy())
             
-            annotated_frame, detection = detect_hanging_object(hanging_object_model, frame)
-            hanging_frame_list.append(annotated_frame)
-            if detection:
-                hanging_material_count += 1
-                
             annotated_frame, detections, person_detected, coordinate_check = detect_persons(model,frame, conf_threshold=0.5)
             frame_list.append(annotated_frame)
             if person_detected and coordinate_check:
@@ -177,17 +172,17 @@ def main(video_path, alert_folder):
         frame_count+=1
         
     cap.release()
-    if hanging_material_count >= 7 and camera_misalignment_flag:
-        out_root = "/data1/yasir/Data/Safety Hazard/Hanging Material False Positive"
+    # if hanging_material_count >= 7 and camera_misalignment_flag:
+    #     out_root = "/data1/yasir/Data/Safety Hazard/Hanging Material False Positive"
         
-        output_folder_path = os.path.join(out_root, alert_folder)
-        os.makedirs(output_folder_path, exist_ok=True)
+    #     output_folder_path = os.path.join(out_root, alert_folder)
+    #     os.makedirs(output_folder_path, exist_ok=True)
 
-        for i, f in enumerate(hanging_frame_list):
-            filename = os.path.join(output_folder_path, f"frame_{i}.jpg")
-            cv2.imwrite(filename, f)
+    #     for i, f in enumerate(hanging_frame_list):
+    #         filename = os.path.join(output_folder_path, f"frame_{i}.jpg")
+    #         cv2.imwrite(filename, f)
             
-    elif hanging_material_count < 7 and camera_misalignment_flag:
+    if camera_misalignment_flag:
         out_root = "/data1/yasir/Data/Safety Hazard/Camera Misalignment"
         
         output_folder_path = os.path.join(out_root, alert_folder)
@@ -198,10 +193,18 @@ def main(video_path, alert_folder):
             cv2.imwrite(filename, f)
     
     else:
+        hanging_material_flag = False
+        hanging_material_count = 0
+        hanging_frame_list = []
+        for frame in original_frame_list:    
+            annotated_frame, detection = detect_hanging_object(hanging_object_model, frame)
+            hanging_frame_list.append(annotated_frame)
+            if detection:
+                hanging_material_count += 1
+                
         if hanging_material_count >= 7:
             hanging_material_flag = True
-        else:
-            hanging_material_flag = False
+            original_frame_list = hanging_frame_list.copy()
         
         prevboxA = None
         # create an empty list
@@ -407,7 +410,10 @@ def main(video_path, alert_folder):
                         filename = os.path.join(output_folder_path, f"frame_{i}.jpg")
                         cv2.imwrite(filename, f)
                 else:
-                    out_root = "/data1/yasir/Data/False Positive/"
+                    if hanging_material_flag:
+                        out_root = "/data1/yasir/Data/False Positive/Hanging Material/"
+                    else:
+                        out_root = "/data1/yasir/Data/False Positive/"
 
                     output_folder_path = os.path.join(out_root, alert_folder)
                     os.makedirs(output_folder_path, exist_ok=True)

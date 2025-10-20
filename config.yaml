@@ -1,5 +1,7 @@
 # config.yaml
 
+face_detection_confidence: 0.5
+
 hand_on_face:
   min_detection_confidence: 0.3
   min_tracking_confidence: 0.3
@@ -11,5 +13,12 @@ face_out_of_frame:
   face_moving_left_theshold: 1
   face_detection_confidence: 0.4
 
+eating_and_drinking:
+  bottle_conf_threshold: 0.5
+  bottle_on_face_threshold: 3  # number of frames with eating/drinking before alert
+
 camera_misalignment:
   person_conf_threshold: 0.5
+
+hanging_material:
+  object_conf_threshold: 0.5

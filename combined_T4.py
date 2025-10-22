@@ -25,7 +25,8 @@ face_not_detected_threshold = CONFIG["face_out_of_frame"]["face_not_detected_thr
 face_moving_left_threshold = CONFIG["face_out_of_frame"]["face_moving_left_theshold"]
 face_detection_confidence = CONFIG["face_out_of_frame"]["face_detection_confidence"]
 hand_on_face_threshold = CONFIG["hand_on_face"]["hand_on_face_trigger_count"]
-iou_threshold = CONFIG["hand_on_face"]["iou_threshold"]
+hand_iou_threshold = CONFIG["hand_on_face"]["iou_threshold"]
+bottle_iou_threshold = CONFIG["eating_and_drinking"]["bottle_iou_threshold"]
 face_moving_left_theshold = CONFIG["face_out_of_frame"]["face_moving_left_theshold"]
 person_detection_conf = CONFIG["camera_misalignment"]["person_conf_threshold"]
 bottle_on_face_threshold = CONFIG["eating_and_drinking"]["bottle_on_face_threshold"]
@@ -214,7 +215,7 @@ def main(video_path, alert_folder):
             
             if boxB!=None and prevboxA!=None:
                 iou = intersection_over_union(prevboxA, boxB)
-                if iou > 0.15:
+                if iou > bottle_iou_threshold:
                     values.append(iou)
                 if iou > 0:
                     cv2.putText(annotated_frame, f"Alert: {iou:0.4f}", (boxB[0], boxB[1] +10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
@@ -289,7 +290,7 @@ def main(video_path, alert_folder):
                 # Hand-on-face IoU check
                 if boxB and prevboxA:
                     iou = intersection_over_union(prevboxA, boxB)
-                    if iou > iou_threshold:
+                    if iou > hand_iou_threshold:
                         values.append(iou)
                     if iou > 0:
                         cv2.putText(annotated_frame, f"Alert: {iou:.4f}",

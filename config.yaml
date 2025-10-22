@@ -5,15 +5,16 @@ face_detection_confidence: 0.5
 hand_on_face:
   min_detection_confidence: 0.3
   min_tracking_confidence: 0.3
-  iou_threshold: 0.15
-  hand_on_face_trigger_count: 3   # number of frames with hand-on-face before alert
+  iou_threshold: 0.25
+  hand_on_face_trigger_count: 5   # number of frames with hand-on-face before alert
 
 face_out_of_frame:
-  face_not_detected_threshold: 2
+  face_not_detected_threshold: 5
   face_moving_left_theshold: 1
   face_detection_confidence: 0.4
 
 eating_and_drinking:
+  bottle_iou_threshold: 0.15
   bottle_conf_threshold: 0.5
   bottle_on_face_threshold: 3  # number of frames with eating/drinking before alert
 

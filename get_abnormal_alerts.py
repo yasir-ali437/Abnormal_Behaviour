@@ -72,7 +72,7 @@ def get_alerts_api(auth_token):
     }
 
     # Get previous day's date
-    base_date = datetime.now(ksa_tz) - timedelta(days=1)
+    base_date = datetime.now(ksa_tz) - timedelta(days=5)
 
     # Specify start and end time for payload
     start_time = base_date.replace(hour=0, minute=0, second=0).strftime("%Y-%m-%d %H:%M:%S")

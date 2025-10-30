@@ -62,7 +62,8 @@ def get_auth_token():
 def get_alerts_api(auth_token):
 
     # API endpoint
-    url = "https://drivesensebk.core9.ai/api/Alert/GetAlertDataAnalysisV2"
+    # url = "https://drivesensebk.core9.ai/api/Alert/GetAlertDataAnalysisV2"
+    url = "https://dsw-bk.core9ventures.com/api/Alert/GetAlertDataAnalysisV2"
     log.info(f"URL: {url}")
 
     # Headers

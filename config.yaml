@@ -3,8 +3,7 @@
 face_detection_confidence: 0.5
 
 hand_on_face:
-  min_detection_confidence: 0.3
-  min_tracking_confidence: 0.3
+  hand_conf_threshold: 0.5
   iou_threshold: 0.25
   hand_on_face_trigger_count: 5   # number of frames with hand-on-face before alert
 

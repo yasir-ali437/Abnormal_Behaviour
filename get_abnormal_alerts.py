@@ -73,7 +73,7 @@ def get_alerts_api(auth_token):
     }
 
     # Get previous day's date
-    base_date = datetime.now(ksa_tz) - timedelta(days=5)
+    base_date = datetime.now(ksa_tz) - timedelta(days=10)
 
     # Specify start and end time for payload
     start_time = base_date.replace(hour=0, minute=0, second=0).strftime("%Y-%m-%d %H:%M:%S")
@@ -99,6 +99,10 @@ def get_alerts_api(auth_token):
     SAVE_DIR = "/data1/yasir/Data/Abnormal Alerts"
     os.makedirs(SAVE_DIR, exist_ok=True)
 
+    list_of_alerts = ['5836352','5836777','5836884','5837495','5837716','5838213',
+                      '5838328','5838459','5839332','5841323','5843292',
+                      '5843511','5844195','5845160']
+    
     try:
         # Make the POST request
         response = requests.post(url, headers=headers, json=payload)
@@ -124,6 +128,8 @@ def get_alerts_api(auth_token):
             for alert in alerts:
                 #alarm_no = alert.get("alarmNo")
                 alarm_no = str(alert.get("vaId"))
+                if alarm_no not in list_of_alerts:
+                    continue
                 file_paths = alert.get("filePaths", [])
                 alert_time = alert.get("startTime")  # "2025-04-13 10:00:09"
                 process_status = alert.get("processStatus")

@@ -19,6 +19,8 @@ eating_and_drinking:
 
 camera_misalignment:
   person_conf_threshold: 0.5
+  face_iou_threshold: 0.035
+  iou_counter_threshold: 3  # number of frames with face intersecting top region before alert
 
 hanging_material:
   object_conf_threshold: 0.5

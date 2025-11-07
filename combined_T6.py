@@ -5,15 +5,6 @@ import os
 from config import CONFIG
 os.environ["CUDA_VISIBLE_DEVICES"] = "4"  # Set to -1 for CPU
 
-# Initialize Mediapipe Hands
-# mp_hands = mp.solutions.hands
-# hands = mp_hands.Hands(
-#     static_image_mode=False,
-#     max_num_hands=2,
-#     min_detection_confidence=0.3,
-#     min_tracking_confidence=0.3
-# )
-
 # Load YOLO and Face Detection models
 model = YOLO("yolo11s.pt")  # use the nano version, change if needed
 bottle_model = YOLO("/home/yasir/retina/Abnormal_Behaviour/yolo11s_bottle.pt")
@@ -30,6 +21,8 @@ hand_iou_threshold = CONFIG["hand_on_face"]["iou_threshold"]
 bottle_iou_threshold = CONFIG["eating_and_drinking"]["bottle_iou_threshold"]
 face_moving_left_theshold = CONFIG["face_out_of_frame"]["face_moving_left_theshold"]
 person_detection_conf = CONFIG["camera_misalignment"]["person_conf_threshold"]
+camera_misalignment_face_iou_threshold = CONFIG["camera_misalignment"]["face_iou_threshold"]
+camera_misalignment_iou_counter_threshold = CONFIG["camera_misalignment"]["iou_counter_threshold"]
 bottle_on_face_threshold = CONFIG["eating_and_drinking"]["bottle_on_face_threshold"]
 bottle_conf_threshold = CONFIG["eating_and_drinking"]["bottle_conf_threshold"]
 object_conf_threshold = CONFIG["hanging_material"]["object_conf_threshold"]
@@ -163,50 +156,58 @@ def main(video_path, alert_folder):
             original_frame_list.append(frame.copy())
             
             annotated_frame, detections, person_detected, coordinate_check = detect_persons(model,frame, conf_threshold=0.5)
+            frame_list.append(annotated_frame)
             if person_detected and coordinate_check:
-                annotated_frame, boxA = detect(face_detector_model, face_conf_threshold, frame, annotated_frame)
-                if boxA is None:
-                    continue
-                h, w = frame.shape[:2]
-                x1, y1, x2, y2 = boxA
-
-                # Define bottom 30% region of the frame
-                bottom_region_start = int(h * 0.7)   # 70% from top
-                bottom_region_end = h                # bottom edge
-
-                # Check if the bounding box intersects this region
-                intersects_bottom = y2 >= bottom_region_start
-
-                if intersects_bottom:
-                    cv2.putText(annotated_frame, "Box intersects bottom 30%", (x1, max(y1-10, 0)),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-                    print("Intersection: YES")
-                    
-                else:
-                    # camera_misalignment_flag = True
-                    print("Intersection: NO")
-
-                # Optional: visualize the bottom 30% region
-                cv2.rectangle(annotated_frame, (0, bottom_region_start), (w, bottom_region_end),
-                            (255, 0, 0), 2)
-                frame_list.append(annotated_frame)
-
-                # camera_misalignment_flag = False
-            
-
-                
+                camera_misalignment_flag = False
                 
         frame_count+=1
         
     cap.release()
-            
+
+    iou_counter = 0
+    updated_frame_list = frame_list.copy()
+    if camera_misalignment_flag is False:
+        updated_frame_list = []
+        for i, frame in enumerate(original_frame_list):
+            annotated_frame, boxA = detect(face_detector_model, face_conf_threshold, frame, frame_list[i].copy())
+            h, w = frame.shape[:2]
+            # Define the region from 10% to 20% of the frame
+            top_region_start = int(h * 0.08)  # 10% from the top
+            top_region_end = int(h * 0.50)    # 20% from the top
+
+            # The region bounding box from 10% to 20% of the frame
+            top_region = (0, top_region_start, w, top_region_end)
+            if boxA is not None:      
+                x1, y1, x2, y2 = boxA
+
+                # # Check if the bounding box intersects this region
+                # intersects_top = y1 <= top_region_end
+
+                # if intersects_top:
+                    # Calculate IoU with the top region
+                iou = intersection_over_union(boxA, top_region)
+                if iou > camera_misalignment_face_iou_threshold:
+                    iou_counter+= 1
+                cv2.putText(annotated_frame, f"Box intersects 10-20% with IOU:{iou:0.3f}", (x2, max(y2+10, 0)),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                
+
+            # Visualize the top 15% region
+            cv2.rectangle(annotated_frame, (0, top_region_start), (w, top_region_end), (255, 0, 0), 2)
+            updated_frame_list.append(annotated_frame)   
+    
+    if iou_counter >= camera_misalignment_iou_counter_threshold:
+        camera_misalignment_flag = False
+    else:
+        camera_misalignment_flag = True
+        
     if camera_misalignment_flag:
         out_root = "/data1/yasir/Data/Safety Hazard/Camera Misalignment"
         
         output_folder_path = os.path.join(out_root, alert_folder)
         os.makedirs(output_folder_path, exist_ok=True)
 
-        for i, f in enumerate(frame_list):
+        for i, f in enumerate(updated_frame_list):
             filename = os.path.join(output_folder_path, f"frame_{i}.jpg")
             cv2.imwrite(filename, f)
     
@@ -315,34 +316,6 @@ def main(video_path, alert_folder):
                                 if dist < min_dist:
                                     min_dist = dist
                                     closest_hand = boxB, class_name, conf
-                                    
-                                # label = f"{class_name} {conf:.2f}"
-                                # cv2.putText(annotated_frame, label, (x1, y1 - 10),
-                                #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                            
-                # Hand detection (left half only)
-                # left_half = frame[:, :frame.shape[1] // 2]
-                # hand_rgb = cv2.cvtColor(left_half, cv2.COLOR_BGR2RGB)
-                # results = hands.process(hand_rgb)
-
-                # boxB = None
-                # if results.multi_hand_landmarks and cxA is not None:
-                #     closest_hand, min_dist = None, float("inf")
-
-                #     for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
-                #                                         results.multi_handedness):
-                #         x_coords = [lm.x for lm in hand_landmarks.landmark]
-                #         y_coords = [lm.y for lm in hand_landmarks.landmark]
-                #         h, w, _ = hand_rgb.shape
-                #         x_min, x_max = int(min(x_coords) * w), int(max(x_coords) * w)
-                #         y_min, y_max = int(min(y_coords) * h), int(max(y_coords) * h)
-
-                #         cxB, cyB = (x_min + x_max) / 2, (y_min + y_max) / 2
-                #         dist = ((cxA - cxB) ** 2 + (cyA - cyB) ** 2) ** 0.5
-
-                #         if dist < min_dist:
-                #             min_dist = dist
-                #             closest_hand = (x_min, y_min, x_max, y_max, handedness)
 
                 if closest_hand:
                     boxB, label, score = closest_hand
@@ -436,7 +409,7 @@ def main(video_path, alert_folder):
 
 if __name__ == "__main__":
     
-    folder_path = "/data1/yasir/Data/Abnormal Alerts/test"
+    folder_path = "/data1/yasir/Data/Abnormal Alerts/2025-10-07"
     for alert_folder in os.listdir(folder_path):
         alert_folder_path = os.path.join(folder_path,alert_folder)
         if os.path.isdir(alert_folder_path):
